@@ -1,0 +1,20 @@
+@startuml Componentes
+!define AWSPUML https://raw.githubusercontent.com/awslabs/aws-icons-for-plantuml/v14.0/LATEST/AWSPUML
+' Componentes principales
+package "Sistema de Adquisición de Datos" {
+  [CAN Reader] as CANR
+  [Data Engine] as DE
+  [Logger] as L
+  [UI Consola] as UI
+}
+
+' Relaciones
+CANR --> DE  : frame decodificado
+DE  --> UI   : estado actual\n(observer)
+DE  --> L    : evento nuevo dato
+
+' Dependencias externas
+database "Archivo .log" as LOGFILE
+UI --> user : muestra datos
+L  --> LOGFILE : append()
+@enduml
