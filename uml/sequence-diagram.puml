@@ -1,0 +1,38 @@
+@startuml Flujo_CAN
+
+title Flujo de un mensaje CAN a través del sistema
+
+actor Usuario as U   #LightBlue
+participant Simulador as SIM      #LightGreen
+participant "CAN Reader" as CANR   #LightYellow
+participant "Data Engine" as DE    #Orange
+participant "UI Consola" as UI     #LightCyan
+participant Logger as LOG     #Thistle
+
+== Generación de la trama ==
+U -> SIM : inicia()\n(ejecuta el programa)
+loop
+    SIM -> CANR : getNextCANFrame()\n(CANFrame)
+    
+    == Lectura / Decodificación ==
+    CANR -> DE : onFrame(frame)
+    
+    == Procesamiento y actualización de estado ==
+    group Actualiza variables internas
+        DE -> DE : parsear ID, datos\nactualizar mapa de estado
+    end
+    
+    == Notificación de observadores ==
+    par Mostrar a usuario
+        DE -> UI : notify(state)
+        UI -> U : refrescar pantalla
+    end
+    par Registrar en archivo
+        DE -> LOG : log(frame)
+        LOG -> "Archivo .log" : append()
+    end
+end
+
+== Fin del programa ==
+U --> SIM : CTRL-C / exit
+@enduml
