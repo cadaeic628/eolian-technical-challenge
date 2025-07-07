@@ -10,15 +10,17 @@
 #include <chrono>
 #include <thread>
 
+
 // Modelos
 struct CANFrame {
 	uint32_t id;
 	uint8_t data[8];	
 };
 
+
 // Simulador CAN
 class CANSimulator {
-    public:
+public:
 	// Devuelve true si se leyó un frame desde stdin o se generó aleatoriamente
 	bool getNext(CANFrame& out) {
 		std::string line;
@@ -38,6 +40,20 @@ class CANSimulator {
 
 };
 
+
+// Logger
+class Logger {
+std::ofstream file;
+public:
+	explicit Logger(const std::string& path) : file(path, std::ios::app) {}
+	void log(const CANFrame& f) {
+		auto t = std::time(nullptr);
+		file << std::put_time(std::localtime(&t), "%F %T") << " "
+			<< std::hex << std::setw(3) << f.id << " ";
+		for (auto b : f.data) file << std::setw(2) << std::setfill('0') << int(b) << " ";
+		file << "\n";
+	}
+};
 
 
 int main() {
