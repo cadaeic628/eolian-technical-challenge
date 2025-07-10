@@ -68,6 +68,28 @@ public:
 };
 
 
+// Data Engine
+class DataEngine {
+	struct VarState { uint64_t timestampMs; std::array<uint8_t,8> data; };
+	std::unordered_map<uint32_t, VarState> latest;
+	std::vector<std::function<void()>> observers;
+public:
+	void onFrame(const CANFrame& f) {
+		auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
+				std::chrono::system_clock::now(),time_since_epoch()).count();
+		latest[f.id] = { now, std::to_array(f.data) };
+		notify();
+	}
+
+	const auto& getState() const { return latest; }
+
+	void subscribe(const std::function<void()>& cb) { observers.push_back(cb); }
+
+private:
+	void notify() { for (auto& fn : observers) fn(); }
+};
+
+
 int main() {
 
 	// semilla para inicializar los procesos aleatorios
@@ -75,9 +97,11 @@ int main() {
 
 	CANSimulator sim;
 	Logger log("src/can_log.txt");
+	DataEngine engine;
 
 	CANFrame frame{};
 	while (sim.getNext(frame)) {
+		engine.onFrame(frame);
 		log.log(frame);
 	}
 	return 0;
