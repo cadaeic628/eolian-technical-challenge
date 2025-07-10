@@ -76,7 +76,7 @@ class DataEngine {
 public:
 	void onFrame(const CANFrame& f) {
 		auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
-				std::chrono::system_clock::now(),time_since_epoch()).count();
+				std::chrono::system_clock::now().time_since_epoch()).count();
 		latest[f.id] = { now, std::to_array(f.data) };
 		notify();
 	}
@@ -90,7 +90,33 @@ private:
 };
 
 
+// UI Consola
+class ConsoleUI {
+	const DataEngine& de;
+public:
+	explicit ConsoleUI(const DataEngine& ref) : de(ref) {}
+
+	void refresh() const {
+		std::system("clear");
+		std::cout << "ID  | Data[8]                       | Age(ms)\n";
+		std::cout << "----+-------------------------------+---------\n";
+		auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
+				std::chrono::system_clock::now().time_since_epoch()).count();
+
+		for (const auto& [id, st] : de.getState()) {
+			std::cout << std::hex << std::setw(3) << std::setfill('0') << id << " | ";
+			for (auto b : st.data) std::cout << std::setw(2) << int(b) << " ";
+			std::cout << "| " << std::dec << (now - st.timestampMs) << "\n";
+		}
+	} 
+
+};
+
+
 int main() {
+	
+	std::ios::sync_with_stdio(false);
+	std::cin.tie(nullptr);
 
 	// semilla para inicializar los procesos aleatorios
 	srand(unsigned(std::time(nullptr)));
@@ -98,6 +124,9 @@ int main() {
 	CANSimulator sim;
 	Logger log("src/can_log.txt");
 	DataEngine engine;
+	ConsoleUI ui(engine);
+
+	engine.subscribe([&] { ui.refresh(); });
 
 	CANFrame frame{};
 	while (sim.getNext(frame)) {
