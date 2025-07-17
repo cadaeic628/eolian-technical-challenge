@@ -1,0 +1,36 @@
+<!DOCTYPE html><html lang="es"><head>
+<meta charset="utf-8" />
+<title>CAN Frames Live</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+ body{font-family:sans-serif;margin:1rem}
+ table{border-collapse:collapse;width:100%}
+ th,td{border:1px solid #ccc;padding:.3rem;text-align:center}
+ tr:nth-child(even){background:#f7f7f7}
+</style>
+</head><body>
+<h1>CAN Frames (en vivo)</h1>
+<table id="tbl">
+<thead><tr><th>Timestamp [µs]</th><th>ID</th><th>Byte 0‑7</th></tr></thead>
+<tbody></tbody>
+</table>
+
+<script>
+const tbody = document.querySelector("#tbl tbody");
+const sock  = io();
+
+sock.on("frame", line => {
+  const cells = line.split(",");
+  const tr = document.createElement("tr");
+  cells.forEach(text => {
+    const td = document.createElement("td");
+    td.textContent = text;
+    tr.appendChild(td);
+  });
+  tbody.prepend(tr); // lo más nuevo arriba
+  if (tbody.rows.length > 200) // mantenemos solo 200 filas
+      tbody.deleteRow(200);
+});
+</script>
+</body></html>
+
