@@ -11,8 +11,15 @@
 </head><body>
 <h1>CAN Frames (en vivo)</h1>
 <table id="tbl">
-<thead><tr><th>Timestamp [µs]</th><th>ID</th><th>Byte 0‑7</th></tr></thead>
-<tbody></tbody>
+  <thead>
+    <tr>
+      <th>Timestamp [µs]</th><th>ID</th>
+      <!-- ocho columnas, una por byte -->
+      <th>B0</th><th>B1</th><th>B2</th><th>B3</th>
+      <th>B4</th><th>B5</th><th>B6</th><th>B7</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
 </table>
 
 <script>
@@ -20,17 +27,18 @@ const tbody = document.querySelector("#tbl tbody");
 const sock  = io();
 
 sock.on("frame", line => {
-  const cells = line.split(",");
+  const parts = line.split(",");
+  if (parts.length !== 10) return;          // timestamp + id + 8 bytes
   const tr = document.createElement("tr");
-  cells.forEach(text => {
+  parts.forEach(val => {
     const td = document.createElement("td");
-    td.textContent = text;
+    td.textContent = val;
     tr.appendChild(td);
   });
-  tbody.prepend(tr); // lo más nuevo arriba
-  if (tbody.rows.length > 200) // mantenemos solo 200 filas
-      tbody.deleteRow(200);
+  tbody.prepend(tr);
+  if (tbody.rows.length > 500) tbody.deleteRow(500); // máximo 500 filas
 });
 </script>
+
 </body></html>
 
