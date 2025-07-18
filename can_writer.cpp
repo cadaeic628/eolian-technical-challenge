@@ -12,6 +12,7 @@
 #include <cerrno>
 #include <cstring>
 #include <cstdlib>
+#include <filesystem>
 
 //util: timestamp legible
 std::string now_str()
@@ -62,6 +63,11 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    std::ofstream log("can_log.txt", std::ios::app);
+    if (!log) {
+        std::cerr << "Advertencia: no se pudo abrir can_log.txt\n";
+    }
+
     // MODO 1: generador aleatorio
     if (argc == 3 && std::strcmp(argv[1], "-r") == 0) {
         char* end;
@@ -79,8 +85,13 @@ int main(int argc, char* argv[])
 
         while (true) {
             std::string frame = random_frame(rng);
-            fifo << now_str() << ',' << frame << '\n';
+	    const std::string line = now_str() + ',' + frame + '\n';
             fifo.flush();
+
+	    if (log) {
+	    	log << line;
+		log.flush();
+	    }
             std::this_thread::sleep_for(period);
         }
     }
@@ -94,13 +105,21 @@ int main(int argc, char* argv[])
     }
 
     std::cout << "[can_writer] Escribe una línea por frame "
-                 "(formato id,b0,..,b7) – Ctrl+D para salir\n";
+                 "(formato id,b0,..,b7) – Ctrl+C para salir\n";
 
     std::string line;
     while (std::getline(std::cin, line)) {
         if (line.empty()) continue; // ignora líneas vacías
-        fifo << now_str() << ',' << line << '\n';
-        fifo.flush();
+        const std::string timestamp = now_str(); // función util existente
+        const std::string fullLine = timestamp + ',' + line + '\n';
+
+        fifo << fullLine;
+        fifo.flush(); // entrega inmediata
+
+        if (log) { // si se abrió bien
+            log << fullLine;
+            log.flush();
+        }
     }
 }
 
