@@ -7,6 +7,8 @@
  table{border-collapse:collapse;width:100%}
  th,td{border:1px solid #ccc;padding:.3rem;text-align:center}
  tr:nth-child(even){background:#f7f7f7}
+ /* highlight temporal */
+ .flash{background:#ffeaa7;transition:background .5s}
 </style>
 </head><body>
 <h1>CAN Frames (en vivo)</h1>
@@ -23,20 +25,56 @@
 </table>
 
 <script>
-const tbody = document.querySelector("#tbl tbody");
-const sock  = io();
+const tbody   = document.querySelector("#tbl tbody");
+const sock    = io();
+const rowMap  = new Map(); // ID -> <tr>
+
+// util para resaltar el cambio
+function flash(td){
+  td.classList.add("flash");
+  setTimeout(()=>td.classList.remove("flash"), 500);
+}
 
 sock.on("frame", line => {
   const parts = line.split(",");
-  if (parts.length !== 10) return;          // timestamp + id + 8 bytes
-  const tr = document.createElement("tr");
-  parts.forEach(val => {
-    const td = document.createElement("td");
-    td.textContent = val;
-    tr.appendChild(td);
+  if (parts.length !== 10) return; // timestamp + id + 8 bytes
+
+  const [timestamp, id, ...bytes] = parts;
+  let tr = rowMap.get(id);
+
+  if (!tr) { // ID nuevo
+    console.log("id nuevo");
+    tr = document.createElement("tr");
+    const vals = [timestamp, id, ...bytes];
+    vals.forEach(v=>{
+      const td = document.createElement("td");
+      td.textContent = v;
+      tr.appendChild(td);
+    });
+    tbody.prepend(tr);
+    rowMap.set(id, tr);
+
+    // límite de filas
+    if (tbody.rows.length > 10) {
+      const last = tbody.rows[tbody.rows.length-1];
+      rowMap.delete(last.cells[1].textContent);  // quita del mapa
+      tbody.deleteRow(tbody.rows.length-1);
+    }
+    return;
+  }
+  console.log("id existente");
+  // ID existente: solo actualiza los bytes distintos
+  tr.cells[0].textContent = timestamp; // actualiza fecha/hora
+  bytes.forEach((b, i)=>{
+    const td = tr.cells[2+i]; // celdas de B0‑B7
+	  if (td.textContent !== b){ // cambió -> actualiza
+      td.textContent = b;
+      flash(td); // efecto visual
+    }
   });
+
+  // se mueve la fila más reciente hacia arriba para ver los cambios
   tbody.prepend(tr);
-  if (tbody.rows.length > 500) tbody.deleteRow(500); // máximo 500 filas
 });
 </script>
 

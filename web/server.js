@@ -18,22 +18,13 @@ app.use(express.static(path.join(__dirname, "public")));  // sirve index.html
 
 io.on("connection", () => console.log("cliente conectado"));
 
-const seenIds = new Set();
-
 function startReader() {
   // bloquea hasta que haya alguien escribiendo en el FIFO
   const stream = fs.createReadStream(FIFO, { encoding: "utf8" });
   const rl = readline.createInterface({ input: stream });
 
-  let lastLine = null;
-
   rl.on("line", line => {
     const l = line.trim();
-    const parts = line.split(",");
-    const id = parts[1]?.toUpperCase();
-    if (!id) return;
-    if (seenIds.has(id)) return;
-    seenIds.add(id);
     io.emit("frame", line);
   });
 
